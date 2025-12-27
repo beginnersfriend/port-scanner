@@ -1,5 +1,8 @@
 import socket
+import threading
+
 open_ports_list = []
+list_lock = threading.Lock()
 
 def check_port_and_grab(ip, port):
     try:
@@ -19,7 +22,6 @@ def check_port_and_grab(ip, port):
                     except socket.timeout:
                         data = b""
                 banner = data.decode(errors="ignore")
-                print(banner)
                 return True, banner
         else:
             sock.close()
@@ -31,12 +33,23 @@ def check_port_and_grab(ip, port):
     finally:
         sock.close()
 
-for port in range(1, 100):
-    print(f"Teste Port {port}...", end="\r")
-    is_open, banner = check_port_and_grab("127.0.0.1", port)
+def worker(ip, port):
+    is_open, banner = check_port_and_grab(ip, port)
     if is_open:
+        with list_lock:
             open_ports_list.append((port, banner))
+            print(f"Port {port} offen: {banner[:50]}")
 
+test_ports = range(1, 100)
+threads = []
+
+for port in test_ports:
+    t = threading.Thread(target=worker, args=("127.0.0.1", port))
+    t.start()
+    threads.append(t)
+
+for t in threads:
+    t.join()
 
 print("Scan abgeschlossen.")
 print("Offene Ports inklusive Banner:", open_ports_list)
