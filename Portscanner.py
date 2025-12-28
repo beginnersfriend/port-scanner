@@ -1,5 +1,6 @@
 import socket
 import threading
+from concurrent.futures import ThreadPoolExecutor
 
 open_ports_list = []
 list_lock = threading.Lock()
@@ -43,13 +44,8 @@ def worker(ip, port):
 test_ports = range(1, 100)
 threads = []
 
-for port in test_ports:
-    t = threading.Thread(target=worker, args=("127.0.0.1", port))
-    t.start()
-    threads.append(t)
-
-for t in threads:
-    t.join()
+with ThreadPoolExecutor(max_workers=50) as executor:
+    executor.map(worker, range(1, 100))
 
 print("Scan abgeschlossen.")
 print("Offene Ports inklusive Banner:", open_ports_list)
